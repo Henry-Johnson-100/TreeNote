@@ -16,7 +16,7 @@ class PrjCmd(cmd.Cmd):
         cmd.Cmd.__init__(self)
         self.top = pm.main()
         self.prj = self.top
-        self.path = "G:/pythonShit/ProjectManager/"
+        self.path = "G:/pythonShit/TreeNote/"
         self.file = str()
         self.print_options = str()
         self.intro = (
@@ -102,7 +102,7 @@ class PrjCmd(cmd.Cmd):
         return len(self.file) != 0 and (len(arg) == 0 or arg.isspace())
 
     def __list_dir(self) -> list:
-        def filter_rule(x): return x.find(".py") == -1
+        def filter_rule(x): return x.find(".pkl") != -1
         file_list = list()
         for (dirpath, dirname, filename) in os.walk(self.path):
             file_list.extend(filename)
@@ -250,6 +250,8 @@ class PrjCmd(cmd.Cmd):
                 return
             self.file = select
         else:
+            if arg.find(".pkl") == -1:
+                arg += ".pkl"
             self.file = arg
         print("file name set to " + self.file)
 
