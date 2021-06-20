@@ -127,6 +127,12 @@ class Project:
         self.subprojects.append(sub_project)
         return sub_project
 
+    def paste_subproject(self,prj: 'Project') -> 'Project': #Who knows about this
+        prj.layer = self.layer + 1
+        prj.parent_project = self
+        self.subprojects.append(prj) 
+        return prj
+
     def walk_tree(self, subproject_tree_list: list, top_layer: int = 0) -> list:
         """:
             Returns a list of Project instances and PLACEHOLDER of all the subprojects located further down the tree.
@@ -242,6 +248,9 @@ class Project:
 
     def __str__(self):
         return self.__str_f__(ellpisis=True)
+
+    def __eq__(self, o: object) -> bool:
+        pass
 
     @staticmethod
     def __pickle__(file):
