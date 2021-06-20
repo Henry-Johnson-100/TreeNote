@@ -1,9 +1,9 @@
-import ProjectManager as pm
+import TreeNote as tn
 import cmd
 import os
 import sys
 
-PRJ_TOP = pm.main()
+PRJ_TOP = tn.main()
 CURRENT_PRJ = None
 CURRENT_PRJ = PRJ_TOP
 
@@ -14,12 +14,15 @@ class PrjCmd(cmd.Cmd):
 
     def __init__(self):
         cmd.Cmd.__init__(self)
-        self.top = pm.main()
+        self.top = tn.main()
         self.prj = self.top
         self.buffer = None
-        self.path = "G:/pythonShit/TreeNote/"
+        # TODO find a better way to handle the getcwd() jank
+        self.path = os.getcwd().replace("\\", "/") + "/"
         self.file = str()
-        self.print_options = str()
+        self.config = self.__open_config()
+        self.config_options = self.__init_config_options()
+        self.__parse_config()
         self.intro = (
             """
         ************************************************************************
@@ -29,8 +32,6 @@ class PrjCmd(cmd.Cmd):
         ************************************************************************
         """
         )
-
-
 
     @staticmethod
     def __arg_contains(arg_str: str, *contain_str: str) -> bool:
@@ -49,6 +50,15 @@ class PrjCmd(cmd.Cmd):
             if field not in arg_str:
                 contains = False
         return contains
+
+    @staticmethod
+    def __first_arg_is(arg_str: str, contain_str: str) -> bool:
+        split_arg = arg_str.split(" ")
+        if len(split_arg) == 0:
+            return False
+        if split_arg[0] != contain_str:
+            return False
+        return True
 
     @staticmethod
     def __arg_strip(arg_str: str, str_to_strip: str, delimiter_to_split: str = " ") -> dict:
@@ -71,6 +81,52 @@ class PrjCmd(cmd.Cmd):
         for arg_key in remaining_list:
             arg_dict[arg_key] = True
         return arg_dict
+
+    @staticmethod
+    def __is_empty_arg(arg_str: str) -> bool:
+        return len(arg_str) == 0 or arg_str.isspace()
+
+    @staticmethod
+    def __init_config_options() -> dict:
+        return {
+            "print_options": ""
+        }
+
+    def __open_config(self, mode: str = "r"):
+        try:
+            config = open("TreeNote.conf", mode)
+        except OSError:
+            config = open("TreeNote.conf", "x")
+            config.close()
+            config = open("TreeNote.conf", mode)
+        return config
+
+    def __close_config(self):
+        pass
+
+    def __reopen_config_if_not_mode(self, mode: str):
+        if self.config.mode != mode:
+            self.config.close()
+            self.config = self.__open_config(mode)
+
+    def __parse_config(self) -> None:
+        self.__reopen_config_if_not_mode("r")
+        config_list = self.config.readlines()
+        split_config_line = list()
+        for config_line in config_list:
+            split_config_line = str(config_line).split(" ")
+            if split_config_line[0] in self.config_options:
+                self.config_options[split_config_line[0]] = str(
+                    " ").join(split_config_line[1:])
+
+    def __save_config(self) -> None:  # Only called on do_quit()
+        self.__reopen_config_if_not_mode("w")
+        config_lines = list()
+        for config_key in self.config_options:
+            config_lines.append(
+                " ".join([config_key, self.config_options[config_key]]))
+        self.config.writelines(config_lines)
+        self.config.close()
 
     def __is_valid_arg(self, arg_str: str, arg_to_test: str, delimiter_to_split: str = " ") -> tuple:
         return self.__arg_contains(arg_str, arg_to_test), self.__arg_strip(arg_str, arg_to_test, delimiter_to_split)
@@ -100,7 +156,7 @@ class PrjCmd(cmd.Cmd):
             Returns:
                 bool: True if self.file and arg are not empty
             """
-        return len(self.file) != 0 and (len(arg) == 0 or arg.isspace())
+        return len(self.file) != 0 and (self.__is_empty_arg(arg))
 
     def __list_dir(self) -> list:
         def filter_rule(x): return x.find(".pkl") != -1
@@ -140,10 +196,10 @@ class PrjCmd(cmd.Cmd):
             "\nArgs: Name of the new branch."
         )
 
-    def do_paste(self, arg): #Do not paste something twice lol #TODO doesn't recursively past all of an object's subprojects too, see the bug example file
+    def do_paste(self, arg):  # Do not paste something twice lol #TODO doesn't recursively past all of an object's subprojects too, see the bug example file
         if self.buffer is None:
             return None
-        self.prj = self.prj.paste_subproject(self.buffer) #This may not work
+        self.prj = self.prj.paste_subproject(self.buffer)  # This may not work
         self.__print_tree()
 
     def do_cut(self, arg):
@@ -189,16 +245,24 @@ class PrjCmd(cmd.Cmd):
         print("Enter a description for the current branch.")
 
     def do_print(self, arg):
-        if self.__arg_contains(arg, "here"):
+        if self.__first_arg_is(arg, "here"):
             self.__print_tree(
-                **self.__arg_strip(arg + self.print_options, "here"))
-        elif self.__arg_contains(arg, "file"):
+                **self.__arg_strip(((arg + self.config_options.setdefault("print_options", ""))),
+                                   "here"
+                                   )
+            )
+        elif self.__first_arg_is(arg, "file"):
             print(self.file)
-        elif self.__arg_contains(arg, "dir"):
+        elif self.__first_arg_is(arg, "dir"):
             print(self.__str_dir())
+        elif self.__first_arg_is(arg, "config"):
+            print(self.config_options)
         else:
             self.__print_tree(
-                **self.__arg_strip(arg + " overview " + self.print_options, ""))
+                **self.__arg_strip(((arg + " overview " + self.config_options.setdefault("print_options", ""))),
+                                   ""
+                                   )
+            )
 
     def help_print(self):
         print(
@@ -217,7 +281,7 @@ class PrjCmd(cmd.Cmd):
         print("Remove the current branch and all lower branches from the tree.")
 
     def do_reset(self, arg):
-        self.top = pm.main()
+        self.top = tn.main()
         self.prj = self.top
         self.__print_tree()
 
@@ -227,10 +291,10 @@ class PrjCmd(cmd.Cmd):
     def do_save(self, arg: str):
         file_name = str()
         if self.__is_file_set_and_arg_empty(arg):
-            pm.save(self.top, self.path + self.file)
+            tn.save(self.top, self.path + self.file)
             file_name = self.file
         else:
-            pm.save(self.top, self.path + arg)
+            tn.save(self.top, self.path + arg)
             file_name = arg
         print("Saved to " + file_name)
 
@@ -242,10 +306,10 @@ class PrjCmd(cmd.Cmd):
         del self.prj
         file_name = str()
         if self.__is_file_set_and_arg_empty(arg):
-            self.top = pm.load(self.path + self.file)
+            self.top = tn.load(self.path + self.file)
             file_name = self.file
         else:
-            self.top = pm.load(self.path + arg)
+            self.top = tn.load(self.path + arg)
             file_name = arg
         print("Loaded from " + file_name)
         self.prj = self.top
@@ -256,7 +320,7 @@ class PrjCmd(cmd.Cmd):
 
     def do_file(self, arg):
         file_name = str()
-        if len(arg) == 0 or str(arg).isspace():
+        if self.__is_empty_arg(arg):
             select = self.__select_from_list(self.__list_dir())
             if select is None:
                 return
@@ -271,13 +335,13 @@ class PrjCmd(cmd.Cmd):
         print("Sets the current file to the name given as an argument. If no arg is given, a list of files in the current directory is shown to choose from.")
 
     def do_priority(self, arg):
-        if len(arg) == 0 or str(arg).isspace():
+        if self.__is_empty_arg(arg):
             priority_dict = {
-                pm.Fore.WHITE + "Default" + pm.Style.RESET_ALL: "0",
-                pm.Fore.MAGENTA + "Low" + pm.Style.RESET_ALL: "1",
-                pm.Fore.CYAN + "Medium" + pm.Style.RESET_ALL: "3",
-                pm.Fore.YELLOW + "High" + pm.Style.RESET_ALL: "5",
-                pm.Fore.RED + "Critical" + pm.Style.RESET_ALL: "6"
+                tn.Fore.WHITE + "Default" + tn.Style.RESET_ALL: "0",
+                tn.Fore.MAGENTA + "Low" + tn.Style.RESET_ALL: "1",
+                tn.Fore.CYAN + "Medium" + tn.Style.RESET_ALL: "3",
+                tn.Fore.YELLOW + "High" + tn.Style.RESET_ALL: "5",
+                tn.Fore.RED + "Critical" + tn.Style.RESET_ALL: "6"
             }
             priority_str = self.__select_from_list(list(priority_dict))
             self.prj.set_priority(priority_dict.setdefault(priority_str, "0"))
@@ -314,7 +378,7 @@ class PrjCmd(cmd.Cmd):
                 self.prj.unset_tag(tag)
         else:
             self.prj.set_tag(arg)
-        self.__print_tree(tags = True)
+        self.__print_tree(tags=True)
 
     def help_tag(self):
         print("Set a tag to the current branch.")
@@ -332,13 +396,29 @@ class PrjCmd(cmd.Cmd):
         pass
 
     def do_config(self, arg):
-        if self.__arg_contains("print"):
-            self.print_options = str(arg).replace("print", "")
+        if self.__first_arg_is(arg, "print"):
+            self.config_options["print_options"] = str(
+                arg).replace("print", "")
+
+        elif self.__first_arg_is(arg, "clear"):
+            if self.__is_empty_arg(str(arg).replace("clear", "")):
+                config_options_list = list()
+                for key in self.config_options:
+                    config_options_list.append(str(key))
+                # I think this will return a string
+                self.config_options[self.__select_from_list(
+                    config_options_list)] = ""
+            else:
+                configs_to_clear = self.__arg_strip(arg, "clear")
+                for config_to_clear_key in configs_to_clear:
+                    if config_to_clear_key in self.config_options:
+                        self.config_options[config_to_clear_key] = ""
 
     def help_config(self):
         print("various configurations - fill in at a later date")
 
     def do_quit(self, arg):
+        self.__save_config()
         sys.exit()
 
     def help_quit(self):
