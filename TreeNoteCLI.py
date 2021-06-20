@@ -6,6 +6,7 @@ import sys
 PRJ_TOP = tn.main()
 CURRENT_PRJ = None
 CURRENT_PRJ = PRJ_TOP
+CONFIG_FILE_NAME = "tree.conf"
 
 
 class PrjCmd(cmd.Cmd):
@@ -94,11 +95,11 @@ class PrjCmd(cmd.Cmd):
 
     def __open_config(self, mode: str = "r"):
         try:
-            config = open("TreeNote.conf", mode)
+            config = open(CONFIG_FILE_NAME, mode)
         except OSError:
-            config = open("TreeNote.conf", "x")
+            config = open(CONFIG_FILE_NAME, "x")
             config.close()
-            config = open("TreeNote.conf", mode)
+            config = open(CONFIG_FILE_NAME, mode)
         return config
 
     def __close_config(self):
