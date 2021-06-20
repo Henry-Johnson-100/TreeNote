@@ -16,6 +16,7 @@ class PrjCmd(cmd.Cmd):
         cmd.Cmd.__init__(self)
         self.top = pm.main()
         self.prj = self.top
+        self.buffer = None
         self.path = "G:/pythonShit/TreeNote/"
         self.file = str()
         self.print_options = str()
@@ -138,6 +139,17 @@ class PrjCmd(cmd.Cmd):
             "Create a new branch nested below the current branch" +
             "\nArgs: Name of the new branch."
         )
+
+    def do_paste(self, arg): #Do not paste something twice lol #TODO doesn't recursively past all of an object's subprojects too, see the bug example file
+        if self.buffer is None:
+            return None
+        self.prj = self.prj.paste_subproject(self.buffer) #This may not work
+        self.__print_tree()
+
+    def do_cut(self, arg):
+        self.buffer = self.prj
+        self.prj = self.prj.clear_project()
+        self.__print_tree()
 
     def do_out(self, arg):
         if self.prj.parent.layer >= -1:
