@@ -127,10 +127,14 @@ class Project:
         self.subprojects.append(sub_project)
         return sub_project
 
-    def paste_subproject(self,prj: 'Project') -> 'Project': #Who knows about this
-        prj.layer = self.layer + 1
+    def paste_subproject(self, prj: 'Project') -> 'Project':  # Who knows about this
         prj.parent_project = self
-        self.subprojects.append(prj) 
+        prj.layer = prj.parent_project.layer
+        #prj.layer = prj.parent_project.layer + 1
+        def __increment_layer(prj):
+            prj.layer = prj.layer + 1
+        prj.do_recursive(lambda prj: __increment_layer(prj))
+        self.subprojects.append(prj)
         return prj
 
     def walk_tree(self, subproject_tree_list: list, top_layer: int = 0) -> list:
@@ -185,6 +189,19 @@ class Project:
         blank_branch = parent.def_subproject("")
         self.clear_project()
         blank_branch.subprojects.insert(0, self)
+
+    def do_recursive(self, doFunc=lambda x: x) -> None:
+        """:
+            Takes a function as an arg and performs it recursively on all objects descended from the current one
+
+            Args:
+                doFunc (function, optional): Function to perform, takes a Project object as an argument. Defaults to lambda x:x.
+            """
+        doFunc(self)
+        if len(self.subprojects) == 0:
+            return
+        for subproject in self.subprojects:
+            subproject.do_recursive(doFunc)
 
     def __str_subprojects__(self) -> str:
         subproject_str = str()
@@ -276,10 +293,22 @@ def load(filepath: str) -> Project:
 
 if __name__ == "__main__":
     test = Project("test", 0, None)
-    test.set_priority("5")
-    test.set_tag("cool")
-    test.set_tag("good")
-    test.set_description(
-        "Something to describe this test branch and test some features of __print_f__()")
-    test.date = "5/29/2021"
-    print(test.__str_f__(date=True, highlight=True, ellipsis=True, tags=True))
+
+    def test1():
+        test = Project("test", 0, None)
+        test.set_priority("5")
+        test.set_tag("cool")
+        test.set_tag("good")
+        test.set_description(
+            "Something to describe this test branch and test some features of __print_f__()")
+        test.date = "5/29/2021"
+        print(test.__str_f__(date=True, highlight=True, ellipsis=True, tags=True))
+
+    def do_recur_test():
+        test.def_subproject("test_sub_1").def_subproject(
+            "test_sub_2").def_subproject("test_sub_3")
+        test.def_subproject("test_sub_a_1").def_subproject("test_sub_a_2")
+        print(test.__str_tree__())
+        test.do_recursive(lambda prj: print("hi"))
+
+    do_recur_test()
