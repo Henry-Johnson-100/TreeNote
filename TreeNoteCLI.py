@@ -344,7 +344,7 @@ class PrjCmd(cmd.Cmd):
                 tn.Fore.RED + "Critical" + tn.Style.RESET_ALL: "6"
             }
             priority_str = self.__select_from_list(list(priority_dict))
-            self.prj.set_priority(priority_dict.setdefault(priority_str, "0"))
+            self.prj.do_recursive(lambda prj: prj.set_priority(priority_dict.setdefault(priority_str, "0"))) #this is so cool that this works lol
         else:
             self.prj.set_priority(arg)
         self.__print_tree()
