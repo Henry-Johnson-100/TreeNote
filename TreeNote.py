@@ -82,7 +82,7 @@ class Project:
         if tag in self.tags:
             self.tags.remove(tag)
 
-    def set_date(self, date: str) -> None:
+    def set_date(self, date: str) -> None: #TODO Need to make this a datetime instead of str
         self.date = date
 
     def set_priority(self, priority: str) -> None:
