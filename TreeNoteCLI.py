@@ -1,3 +1,4 @@
+from typing import IO
 import TreeNote as tn
 import cmd
 import os
@@ -54,7 +55,16 @@ class PrjCmd(cmd.Cmd):
 
     @staticmethod
     def __first_arg_is(arg_str: str, contain_str: str) -> bool:
-        #DOCME __first_arg_is
+        """:
+            True if the first argument in a space-delimited arg string is the same as the passed parameter
+
+            Args:
+                arg_str (str): space delimited string of arguments to check
+                contain_str (str): The specific argument keyword to check for
+
+            Returns:
+                bool: True if the first argument in arg_str is the same as contain_str, False otherwise
+            """        
         split_arg = arg_str.split(" ")
         if len(split_arg) == 0:
             return False
@@ -86,17 +96,32 @@ class PrjCmd(cmd.Cmd):
 
     @staticmethod
     def __is_empty_arg(arg_str: str) -> bool:
-        #DOCME __is_empty_arg
+        """:
+            Check if an argument string is empty.
+
+            Args:
+                arg_str (str): argument string to check
+
+            Returns:
+                bool: True if the argument string is empty or only spaces
+            """        
         return len(arg_str) == 0 or arg_str.isspace()
 
     @staticmethod
     def __init_config_options() -> dict:
-        #DOCME __init_config_options
+        """:
+            Initialize dictionary of config options.
+            Creating keys for possible configurations then populating their values with an empty string.
+            Any new configuration options should be added here first or else they will not be added/interacted with properly in the rest of the program.
+
+            Returns:
+                dict: Dictionary with configuration option names as keys and empty strings as values
+            """        
         return {
             "print_options": ""
         }
 
-    def __open_config(self, mode: str = "r"): #TYPEME
+    def __open_config(self, mode: str = "r") -> IO:
         #DOCME __open_config
         try:
             config = open(CONFIG_FILE_NAME, mode)
