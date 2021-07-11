@@ -1,3 +1,4 @@
+from typing import IO
 import TreeNote as tn
 import cmd
 import os
@@ -69,6 +70,16 @@ class PrjCmd(cmd.Cmd):
 
     @staticmethod
     def __first_arg_is(arg_str: str, contain_str: str) -> bool:
+        """:
+            True if the first argument in a space-delimited arg string is the same as the passed parameter
+
+            Args:
+                arg_str (str): space delimited string of arguments to check
+                contain_str (str): The specific argument keyword to check for
+
+            Returns:
+                bool: True if the first argument in arg_str is the same as contain_str, False otherwise
+            """        
         split_arg = arg_str.split(" ")
         if len(split_arg) == 0:
             return False
@@ -100,15 +111,33 @@ class PrjCmd(cmd.Cmd):
 
     @staticmethod
     def __is_empty_arg(arg_str: str) -> bool:
+        """:
+            Check if an argument string is empty.
+
+            Args:
+                arg_str (str): argument string to check
+
+            Returns:
+                bool: True if the argument string is empty or only spaces
+            """        
         return len(arg_str) == 0 or arg_str.isspace()
 
     @staticmethod
     def __init_config_options() -> dict:
+        """:
+            Initialize dictionary of config options.
+            Creating keys for possible configurations then populating their values with an empty string.
+            Any new configuration options should be added here first or else they will not be added/interacted with properly in the rest of the program.
+
+            Returns:
+                dict: Dictionary with configuration option names as keys and empty strings as values
+            """        
         return {
             "print_options": ""
         }
 
-    def __open_config(self, mode: str = "r"):
+    def __open_config(self, mode: str = "r") -> IO:
+        #DOCME __open_config
         try:
             config = open(CONFIG_FILE_NAME, mode)
         except OSError:
@@ -118,14 +147,17 @@ class PrjCmd(cmd.Cmd):
         return config
 
     def __close_config(self):
+        #TODO maybe
         pass
 
-    def __reopen_config_if_not_mode(self, mode: str):
+    def __reopen_config_if_not_mode(self, mode: str) -> None:
+        #DOCME
         if self.config.mode != mode:
             self.config.close()
             self.config = self.__open_config(mode)
 
     def __parse_config(self) -> None:
+        #DOCME
         self.__reopen_config_if_not_mode("r")
         config_list = self.config.readlines()
         split_config_line = list()
@@ -136,6 +168,7 @@ class PrjCmd(cmd.Cmd):
                     " ").join(split_config_line[1:])
 
     def __save_config(self) -> None:  # Only called on do_quit()
+        #DOCME
         self.__reopen_config_if_not_mode("w")
         config_lines = list()
         for config_key in self.config_options:
@@ -145,6 +178,7 @@ class PrjCmd(cmd.Cmd):
         self.config.close()
 
     def __is_valid_arg(self, arg_str: str, arg_to_test: str, delimiter_to_split: str = " ") -> tuple:
+        #DOCME
         return self.__arg_contains(arg_str, arg_to_test), self.__arg_strip(arg_str, arg_to_test, delimiter_to_split)
 
     def __print_tree(self, **kwargs) -> None:
@@ -175,6 +209,7 @@ class PrjCmd(cmd.Cmd):
         return len(self.file) != 0 and (self.__is_empty_arg(arg))
 
     def __list_dir(self) -> list:
+        #DOCME
         def filter_rule(x): return x.find(".pkl") != -1
         file_list = list()
         for (dirpath, dirname, filename) in os.walk(self.path):
@@ -182,6 +217,7 @@ class PrjCmd(cmd.Cmd):
         return list(filter(filter_rule, file_list))
 
     def __str_dir(self) -> str:
+        #DOCME
         file_list = self.__list_dir()
         file_str = str()
         for thing in filter(lambda x: x.find(".py") == -1, file_list):
@@ -189,6 +225,7 @@ class PrjCmd(cmd.Cmd):
         return file_str
 
     def __select_from_list(self, select_list: list):
+        #DOCME
         if len(select_list) == 0:
             return None
         elif len(select_list) == 1:
@@ -203,6 +240,7 @@ class PrjCmd(cmd.Cmd):
             return None
 
     def do_new(self, arg):
+        #DOCME
         self.prj = self.prj.def_subproject(arg)
         self.__print_tree()
 
@@ -212,18 +250,21 @@ class PrjCmd(cmd.Cmd):
             "\nArgs: Name of the new branch."
         )
 
-    def do_paste(self, arg):  # Do not paste something twice lol #TODO doesn't recursively past all of an object's subprojects too, see the bug example file
+    def do_paste(self, arg):  # Do not paste something twice lol #TODO doesn't recursively paste all of an object's subprojects too, see the bug example file
+        #DOCME
         if self.buffer is None:
             return None
         self.prj = self.prj.paste_subproject(self.buffer)  # This may not work
         self.__print_tree()
 
     def do_cut(self, arg):
+        #DOCME
         self.buffer = self.prj
         self.prj = self.prj.clear_project()
         self.__print_tree()
 
     def do_out(self, arg):
+        #DOCME
         if self.prj.parent.layer >= -1:
             self.prj = self.prj.parent
             self.__print_tree()
@@ -234,6 +275,7 @@ class PrjCmd(cmd.Cmd):
         print("Move one layer out of the tree, to the previous branch.")
 
     def do_in(self, arg):
+        #DOCME
         subprojects = self.prj.get_subprojects()
         down_choice = self.__select_from_list(subprojects)
         if down_choice is None:
@@ -247,6 +289,7 @@ class PrjCmd(cmd.Cmd):
               )
 
     def do_top(self, arg):
+        #DOCME
         self.prj = self.top
         self.__print_tree()
 
@@ -254,6 +297,7 @@ class PrjCmd(cmd.Cmd):
         print("Go to the top of the tree.")
 
     def do_description(self, arg):
+        #DOCME
         self.prj.set_description(arg)
         self.__print_tree()
 
@@ -261,6 +305,7 @@ class PrjCmd(cmd.Cmd):
         print("Enter a description for the current branch.")
 
     def do_print(self, arg):
+        #DOCME
         if self.__first_arg_is(arg, "here"):
             self.__print_tree(
                 **self.__arg_strip(((arg + self.config_options.setdefault("print_options", ""))),
@@ -290,6 +335,7 @@ class PrjCmd(cmd.Cmd):
         )
 
     def do_clear(self, arg):
+        #DOCME
         self.prj = self.prj.clear_project()
         self.__print_tree()
 
@@ -297,6 +343,7 @@ class PrjCmd(cmd.Cmd):
         print("Remove the current branch and all lower branches from the tree.")
 
     def do_reset(self, arg):
+        #DOCME
         self.top = tn.main()
         self.prj = self.top
         self.__print_tree()
@@ -305,6 +352,7 @@ class PrjCmd(cmd.Cmd):
         print("Removes all branches from the current tree.")
 
     def do_save(self, arg: str):
+        #DOCME
         file_name = str()
         if self.__is_file_set_and_arg_empty(arg):
             tn.save(self.top, self.path + self.file)
@@ -318,6 +366,7 @@ class PrjCmd(cmd.Cmd):
         print("Saves the current tree to the file given as an argument or if no arg is given, to the current file shown by \'print file\'.")
 
     def do_load(self, arg):
+        #DOCME
         del self.top
         del self.prj
         file_name = str()
@@ -335,6 +384,7 @@ class PrjCmd(cmd.Cmd):
         print("Loads a tree from the file given as an argument or if no arg is given, from the current file shown by \'print file\'.")
 
     def do_file(self, arg):
+        #DOCME
         file_name = str()
         if self.__is_empty_arg(arg):
             select = self.__select_from_list(self.__list_dir())
@@ -351,6 +401,7 @@ class PrjCmd(cmd.Cmd):
         print("Sets the current file to the name given as an argument. If no arg is given, a list of files in the current directory is shown to choose from.")
 
     def do_priority(self, arg):
+        #DOCME
         if self.__is_empty_arg(arg):
             priority_dict = {
                 tn.Fore.WHITE + "Default" + tn.Style.RESET_ALL: "0",
@@ -373,7 +424,8 @@ class PrjCmd(cmd.Cmd):
               "\nNone - a list will be presented with options to choose from."
               )
 
-    def do_move(self, arg):
+    def do_move(self, arg): #TODO
+        #DOCME
         if arg == "up" or arg == "down":
             self.prj.move_laterally({"up": -1, "down": 1}.get(arg))
         elif arg == "in" or arg == "out":
@@ -389,30 +441,37 @@ class PrjCmd(cmd.Cmd):
               )
 
     def do_tag(self, arg):
+        #DOCME
         if self.__arg_contains(arg, "remove"):
             remove_list = list(self.__arg_strip(arg, "remove").keys())
             for tag in remove_list:
-                self.prj.unset_tag(tag)
+                # unsure if this will work
+                self.prj.do_recursive(lambda prj: prj.unset_tag(tag))
+                # self.prj.unset_tag(tag)
         else:
-            self.prj.set_tag(arg)
+            tag_list = list(self.__arg_strip(arg, "").keys())
+            for tag in tag_list:
+                self.prj.do_recursive(lambda prj: prj.set_tag(tag))
+                # self.prj.set_tag(arg)
         self.__print_tree(tags=True)
 
     def help_tag(self):
         print("Set a tag to the current branch.")
 
-    def do_date(self, arg):
+    def do_date(self, arg):#TODO
         self.prj.set_date(arg)
 
-    def help_date(self):
+    def help_date(self):#TODO
         print("Set a date to the current branch.")
 
-    def do_search(self, arg):
+    def do_search(self, arg):#TODO #XXX
         search_tags = self.__arg_strip(arg, "")
 
     def do_filter(self, arg):
         pass
 
     def do_config(self, arg):
+        #DOCME
         if self.__first_arg_is(arg, "print"):
             self.config_options["print_options"] = str(
                 arg).replace("print", "")
@@ -435,13 +494,15 @@ class PrjCmd(cmd.Cmd):
         print("various configurations - fill in at a later date")
 
     def do_quit(self, arg):
+        #DOCME
         self.__save_config()
         sys.exit()
 
     def help_quit(self):
         print("Quits")
 
-    def emptyline(self):
+    def emptyline(self) -> None:
+        #DOCME
         return
 
 
