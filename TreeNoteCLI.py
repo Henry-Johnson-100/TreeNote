@@ -3,11 +3,26 @@ import cmd
 import os
 import sys
 
+
+def __get_platform_commands() -> dict:
+    command_dict = dict()
+    platform = os.name
+    if platform == "posix":
+        command_dict = {
+            "clear": "clear"
+        }
+    else:
+        command_dict = {
+            "clear": "cls"
+        }
+    return command_dict
+
+
 PRJ_TOP = tn.main()
 CURRENT_PRJ = None
 CURRENT_PRJ = PRJ_TOP
 CONFIG_FILE_NAME = "tree.conf"
-
+COMMANDS = __get_platform_commands()
 
 class PrjCmd(cmd.Cmd):
     # cmd instance vars here
@@ -141,7 +156,7 @@ class PrjCmd(cmd.Cmd):
             overview: bool (False) - prints the entire tree instead of the tree starting from the current branch.
             """
         if kwargs.setdefault("clear", True):
-            os.system('cls')
+            os.system(COMMANDS.get("clear"))
         if kwargs.setdefault("overview", False):
             print(self.top.__str_tree__(**kwargs))
         else:
@@ -345,7 +360,8 @@ class PrjCmd(cmd.Cmd):
                 tn.Fore.RED + "Critical" + tn.Style.RESET_ALL: "6"
             }
             priority_str = self.__select_from_list(list(priority_dict))
-            self.prj.do_recursive(lambda prj: prj.set_priority(priority_dict.setdefault(priority_str, "0"))) #this is so cool that this works lol
+            self.prj.do_recursive(lambda prj: prj.set_priority(priority_dict.setdefault(
+                priority_str, "0")))  # this is so cool that this works lol
         else:
             self.prj.set_priority(arg)
         self.__print_tree()
