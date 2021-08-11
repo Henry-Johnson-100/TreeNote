@@ -3,6 +3,7 @@ import TreeNote as tn
 import cmd
 import os
 import sys
+import pickle
 
 
 def __get_platform_commands() -> dict:
@@ -23,6 +24,7 @@ PRJ_TOP = tn.main()
 CURRENT_PRJ = None
 CURRENT_PRJ = PRJ_TOP
 CONFIG_FILE_NAME = "tree.conf"
+DEFAULT_CONFIG_KEYS = {"print_options", "aliases"}
 COMMANDS = __get_platform_commands()
 
 class PrjCmd(cmd.Cmd):
@@ -37,9 +39,7 @@ class PrjCmd(cmd.Cmd):
         # TODO find a better way to handle the getcwd() jank
         self.path = os.getcwd().replace("\\", "/") + "/"
         self.file = str()
-        self.config = self.__open_config()
-        self.config_options = self.__init_config_options()
-        self.__parse_config()
+        self.config = dict()
         self.intro = (
             """
         ************************************************************************
@@ -49,6 +49,30 @@ class PrjCmd(cmd.Cmd):
         ************************************************************************
         """
         )
+
+    def preloop(self) -> None:
+        try:
+            config = open(CONFIG_FILE_NAME, "rb")
+        except OSError:
+            config = open(CONFIG_FILE_NAME, "x")
+            config.close()
+            config = open(CONFIG_FILE_NAME, "rb")
+        try:
+            self.config = pickle.load(config)
+        except EOFError:
+            self.config = {
+                "print_options": [],
+                "aliases": []
+                }
+        db = set(self.config.keys())
+        if set(self.config.keys()) != DEFAULT_CONFIG_KEYS:
+            self.config.update(**{"print_options":[], "aliases":[]})
+        config.close()
+
+    def __save_config(self) -> None:
+        config = open(CONFIG_FILE_NAME, "wb")
+        pickle.dump(self.config,config)
+        config.close()
 
     @staticmethod
     def __arg_contains(arg_str: str, *contain_str: str) -> bool:
@@ -121,61 +145,6 @@ class PrjCmd(cmd.Cmd):
                 bool: True if the argument string is empty or only spaces
             """        
         return len(arg_str) == 0 or arg_str.isspace()
-
-    @staticmethod
-    def __init_config_options() -> dict:
-        """:
-            Initialize dictionary of config options.
-            Creating keys for possible configurations then populating their values with an empty string.
-            Any new configuration options should be added here first or else they will not be added/interacted with properly in the rest of the program.
-
-            Returns:
-                dict: Dictionary with configuration option names as keys and empty strings as values
-            """        
-        return {
-            "print_options": ""
-        }
-
-    def __open_config(self, mode: str = "r") -> IO:
-        #DOCME __open_config
-        try:
-            config = open(CONFIG_FILE_NAME, mode)
-        except OSError:
-            config = open(CONFIG_FILE_NAME, "x")
-            config.close()
-            config = open(CONFIG_FILE_NAME, mode)
-        return config
-
-    def __close_config(self):
-        #TODO maybe
-        pass
-
-    def __reopen_config_if_not_mode(self, mode: str) -> None:
-        #DOCME
-        if self.config.mode != mode:
-            self.config.close()
-            self.config = self.__open_config(mode)
-
-    def __parse_config(self) -> None:
-        #DOCME
-        self.__reopen_config_if_not_mode("r")
-        config_list = self.config.readlines()
-        split_config_line = list()
-        for config_line in config_list:
-            split_config_line = str(config_line).split(" ")
-            if split_config_line[0] in self.config_options:
-                self.config_options[split_config_line[0]] = str(
-                    " ").join(split_config_line[1:])
-
-    def __save_config(self) -> None:  # Only called on do_quit()
-        #DOCME
-        self.__reopen_config_if_not_mode("w")
-        config_lines = list()
-        for config_key in self.config_options:
-            config_lines.append(
-                " ".join([config_key, self.config_options[config_key]]))
-        self.config.writelines(config_lines)
-        self.config.close()
 
     def __is_valid_arg(self, arg_str: str, arg_to_test: str, delimiter_to_split: str = " ") -> tuple:
         #DOCME
@@ -308,7 +277,7 @@ class PrjCmd(cmd.Cmd):
         #DOCME
         if self.__first_arg_is(arg, "here"):
             self.__print_tree(
-                **self.__arg_strip(((arg + self.config_options.setdefault("print_options", ""))),
+                **self.__arg_strip(((arg + self.config.setdefault("print_options", ""))),
                                    "here"
                                    )
             )
@@ -317,10 +286,10 @@ class PrjCmd(cmd.Cmd):
         elif self.__first_arg_is(arg, "dir"):
             print(self.__str_dir())
         elif self.__first_arg_is(arg, "config"):
-            print(self.config_options)
+            print(self.config)
         else:
             self.__print_tree(
-                **self.__arg_strip(((arg + " overview " + self.config_options.setdefault("print_options", ""))),
+                **self.__arg_strip(((arg + " overview " + self.config.setdefault("print_options", ""))),
                                    ""
                                    )
             )
@@ -473,22 +442,22 @@ class PrjCmd(cmd.Cmd):
     def do_config(self, arg):
         #DOCME
         if self.__first_arg_is(arg, "print"):
-            self.config_options["print_options"] = str(
+            self.config["print_options"] = str(
                 arg).replace("print", "")
 
         elif self.__first_arg_is(arg, "clear"):
             if self.__is_empty_arg(str(arg).replace("clear", "")):
                 config_options_list = list()
-                for key in self.config_options:
+                for key in self.config:
                     config_options_list.append(str(key))
                 # I think this will return a string
-                self.config_options[self.__select_from_list(
+                self.config[self.__select_from_list(
                     config_options_list)] = ""
             else:
                 configs_to_clear = self.__arg_strip(arg, "clear")
                 for config_to_clear_key in configs_to_clear:
-                    if config_to_clear_key in self.config_options:
-                        self.config_options[config_to_clear_key] = ""
+                    if config_to_clear_key in self.config:
+                        self.config[config_to_clear_key] = ""
 
     def help_config(self):
         print("various configurations - fill in at a later date")
