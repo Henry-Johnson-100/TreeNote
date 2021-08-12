@@ -285,13 +285,8 @@ class PrjCmd(cmd.Cmd):
         print("Enter a description for the current branch.")
 
     def do_print(self, arg):
-        #DOCME
         if self.__first_arg_is(arg, "here"):
-            self.__print_tree(
-                **self.__arg_strip(((arg + " ".join(self.config["print_options"]))),
-                                   "here"
-                                   )
-            )
+            self.__print_tree(**self.__arg_strip(arg + " ".join(self.config["print_options"]),"here"))
         elif self.__first_arg_is(arg, "file"):
             print(self.file)
         elif self.__first_arg_is(arg, "dir"):
@@ -299,11 +294,7 @@ class PrjCmd(cmd.Cmd):
         elif self.__first_arg_is(arg, "config"):
             print(self.config)
         else:
-            self.__print_tree(
-                **self.__arg_strip(((arg + " overview " + " ".join(self.config["print_options"]))),
-                                   ""
-                                   )
-            )
+            self.__print_tree(**self.__arg_strip(arg + " overview " + " ".join(self.config["print_options"]),""))
 
     def help_print(self):
         print(
@@ -315,7 +306,6 @@ class PrjCmd(cmd.Cmd):
         )
 
     def do_clear(self, arg):
-        #DOCME
         self.prj = self.prj.clear_project()
         self.__print_tree()
 
@@ -323,7 +313,6 @@ class PrjCmd(cmd.Cmd):
         print("Remove the current branch and all lower branches from the tree.")
 
     def do_reset(self, arg):
-        #DOCME
         self.top = tn.main()
         self.prj = self.top
         self.__print_tree()
@@ -332,7 +321,6 @@ class PrjCmd(cmd.Cmd):
         print("Removes all branches from the current tree.")
 
     def do_save(self, arg: str):
-        #DOCME
         file_name = str()
         if self.__is_file_set_and_arg_empty(arg):
             tn.save(self.top, self.path + self.file)
