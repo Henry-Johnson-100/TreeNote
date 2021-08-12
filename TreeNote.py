@@ -123,7 +123,7 @@ class Project:
             Returns:
                 Project: New Project object, initialized with the entered title and layer = self.layer + 1
             """
-        sub_project = Project(title, self.layer + 1, self)
+        sub_project = Project(title.title(), self.layer + 1, self)
         self.subprojects.append(sub_project)
         return sub_project
 
