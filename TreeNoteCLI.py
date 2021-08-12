@@ -24,7 +24,10 @@ PRJ_TOP = tn.main()
 CURRENT_PRJ = None
 CURRENT_PRJ = PRJ_TOP
 CONFIG_FILE_NAME = "tree.conf"
-DEFAULT_CONFIG_KEYS = {"print_options", "aliases"}
+DEFAULT_CONFIG = {
+    "print_options": [],
+    "aliases": {}
+}
 COMMANDS = __get_platform_commands()
 
 class PrjCmd(cmd.Cmd):
@@ -60,14 +63,22 @@ class PrjCmd(cmd.Cmd):
         try:
             self.config = pickle.load(config)
         except EOFError:
-            self.config = {
-                "print_options": [],
-                "aliases": []
-                }
+            self.config = dict()
         db = set(self.config.keys())
-        if set(self.config.keys()) != DEFAULT_CONFIG_KEYS:
-            self.config.update(**{"print_options":[], "aliases":[]})
+        if set(self.config.keys()) != set(DEFAULT_CONFIG.keys()):
+            self.config.update(**{"print_options":[], "aliases":{}})
         config.close()
+
+
+    def precmd(self, line: str) -> str:
+        split_line = line.split(" ")
+        if split_line[0] in self.config["aliases"]:
+            cmd_name = self.config["aliases"][split_line[0]]
+            cmd_str = f"do_{cmd_name}"
+            if hasattr(self, cmd_str):
+                cmd_args = " ".join(split_line[1:])
+                return f"{cmd_name} {cmd_args}"
+        return line
 
     def __save_config(self) -> None:
         config = open(CONFIG_FILE_NAME, "wb")
@@ -277,7 +288,7 @@ class PrjCmd(cmd.Cmd):
         #DOCME
         if self.__first_arg_is(arg, "here"):
             self.__print_tree(
-                **self.__arg_strip(((arg + self.config.setdefault("print_options", ""))),
+                **self.__arg_strip(((arg + " ".join(self.config["print_options"]))),
                                    "here"
                                    )
             )
@@ -289,7 +300,7 @@ class PrjCmd(cmd.Cmd):
             print(self.config)
         else:
             self.__print_tree(
-                **self.__arg_strip(((arg + " overview " + self.config.setdefault("print_options", ""))),
+                **self.__arg_strip(((arg + " overview " + " ".join(self.config["print_options"]))),
                                    ""
                                    )
             )
@@ -410,13 +421,10 @@ class PrjCmd(cmd.Cmd):
               )
 
     def do_tag(self, arg):
-        #DOCME
         if self.__arg_contains(arg, "remove"):
             remove_list = list(self.__arg_strip(arg, "remove").keys())
             for tag in remove_list:
-                # unsure if this will work
                 self.prj.do_recursive(lambda prj: prj.unset_tag(tag))
-                # self.prj.unset_tag(tag)
         else:
             tag_list = list(self.__arg_strip(arg, "").keys())
             for tag in tag_list:
@@ -440,27 +448,31 @@ class PrjCmd(cmd.Cmd):
         pass
 
     def do_config(self, arg):
-        #DOCME
-        if self.__first_arg_is(arg, "print"):
-            self.config["print_options"] = str(
-                arg).replace("print", "")
-
+        if self.__first_arg_is(arg, "print_options"):
+            self.config["print_options"].extend(str(arg).replace("print_options", "").strip().split(" ")) 
+        elif self.__first_arg_is(arg, "aliases"):
+            argKeys = str(arg).replace("aliases","").strip().split(" ")
+            self.config["aliases"][argKeys[0]] = argKeys[1]
         elif self.__first_arg_is(arg, "clear"):
-            if self.__is_empty_arg(str(arg).replace("clear", "")):
-                config_options_list = list()
-                for key in self.config:
-                    config_options_list.append(str(key))
-                # I think this will return a string
-                self.config[self.__select_from_list(
-                    config_options_list)] = ""
-            else:
+            if not self.__is_empty_arg(str(arg).replace("clear","")):
                 configs_to_clear = self.__arg_strip(arg, "clear")
                 for config_to_clear_key in configs_to_clear:
                     if config_to_clear_key in self.config:
-                        self.config[config_to_clear_key] = ""
+                        self.config[config_to_clear_key] = DEFAULT_CONFIG[config_to_clear_key]
+            else:
+                print("Please supply arguments of the configuration options you wish to be cleared.")
+
 
     def help_config(self):
-        print("various configurations - fill in at a later date")
+        print("""Set the configurations:\n
+            The first argument to the 'config' command should be the key of the config you would like to change,
+            The second argument is the value that goes along with that key.
+            \tChanging config keys varies in behavior depending on the key, the print_options key can accept multiple arguments.
+            \tThe aliases key can only accept one, that is a key value pair.\n
+            OPTIONS:
+            \t-> print_options : [tags,date,highlight]
+            \t-> aliases : 'alias name' 'operation'
+        """)
 
     def do_quit(self, arg):
         #DOCME
